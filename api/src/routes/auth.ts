@@ -1,38 +1,65 @@
-import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
-// import  { User } from '@prisma/client';
+import { Router } from 'express';
 import { prisma } from '../prisma';
-import { sendError } from '../utils';
+import { generateToken, hashPassword, comparePassword, sendError, sendSuccess } from '../utils';
+import { authMiddleware } from '../middleware/authMiddleware';
 
-// Type declaration extension
-// declare module 'express-serve-static-core' {
-//   interface Request {
-//     user?: User;
-//   }
-// }
+const router = Router();
 
-const JWT_SECRET = process.env.JWT_SECRET as string;
-
-export const authMiddleware = async (req: Request, res: Response, next: NextFunction) => {
+// Register
+router.post('/register', async (req, res) => {
   try {
-    const token = req.header('Authorization')?.replace('Bearer ', '');
+    const { name, email, password } = req.body;
 
-    if (!token) {
-      return sendError(res, 401, 'Please authenticate');
+    if (!name || !email || !password) {
+      return sendError(res, 400, 'Please provide all fields');
     }
 
-    const decoded = jwt.verify(token, JWT_SECRET) as { userId: number };
-    const user = await prisma.user.findUnique({ where: { id: decoded.userId } });
-
-    if (!user) {
-      return sendError(res, 401, 'User not found');
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser) {
+      return sendError(res, 400, 'User already exists');
     }
 
-    req.user = user; // Now properly typed
-    next();
+    const hashedPassword = await hashPassword(password);
+    const user = await prisma.user.create({
+      data: { name, email, password: hashedPassword },
+    });
+
+    const token = generateToken(user.id);
+    sendSuccess(res, { user, token });
   } catch (error) {
-    sendError(res, 401, 'Please authenticate');
+    sendError(res, 500, 'Something went wrong');
   }
-};
+});
 
-export default authMiddleware
+// Login
+router.post('/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return sendError(res, 400, 'Please provide email and password');
+    }
+
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      return sendError(res, 401, 'Invalid credentials');
+    }
+
+    const isMatch = await comparePassword(password, user.password);
+    if (!isMatch) {
+      return sendError(res, 401, 'Invalid credentials');
+    }
+
+    const token = generateToken(user.id);
+    sendSuccess(res, { user, token });
+  } catch (error) {
+    sendError(res, 500, 'Something went wrong');
+  }
+});
+
+// Get current user
+router.get('/me', authMiddleware, async (req, res) => {
+  sendSuccess(res, req.user);
+});
+
+export default router;

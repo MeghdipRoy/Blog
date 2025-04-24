@@ -1,20 +1,14 @@
 {
   "compilerOptions": {
-    // "types": ["node"],
-    // "typeRoots": ["node_modules/@types"],
-    "target": "ES6",
-    "module": "CommonJS",
+    "target": "ES2020",
+    "module": "commonjs",
+    "baseUrl": "./",
     "outDir": "./dist",
     "rootDir": "./src",
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
     "moduleResolution": "node",
-    // "paths": {
-    //   "@prisma/client": ["./node_modules/@prisma/client/index.d.ts"]
-    // }
+    "esModuleInterop": true,
+    "strict": true,
+    "typeRoots": ["./src/types", "./node_modules/@types"]
   },
-  "include": ["src/**/*","src/types/**/*","./node_modules/@types"],
-  "exclude": ["node_modules"]
+  "include": ["src"]
 }
