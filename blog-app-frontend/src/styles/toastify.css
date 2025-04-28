@@ -1,0 +1,6 @@
+@import 'react-toastify/dist/ReactToastify.css';
+
+.Toastify__toast {
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+}
